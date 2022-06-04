@@ -66,6 +66,9 @@ function init() {
   theCanvas.width = window.innerWidth;
   theCanvas.height = window.innerHeight - 32;
 
+  scrollOffsetX = window.innerWidth / 2;
+  scrollOffsetY = window.innerHeight / 2;
+
   theCanvas.onmousedown = mouseDown;
   theCanvas.onmouseup = () => dragging = false;
   theCanvas.onmousemove = mouseMove;
