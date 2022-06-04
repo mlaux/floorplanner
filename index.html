@@ -6,8 +6,24 @@
   </head>
   <body>
     <canvas id="the-canvas"></canvas>
-    <button id="control-rectangle">Rectangle</button>
-    <button id="control-line">Line</button>
+    <label>
+      <input type="radio" name="tool" class="tool" id="tool-scroll" checked>
+      Scroll
+    </label>
+    <label>
+      <input type="radio" name="tool" class="tool" id="tool-rectangle">
+      Rectangle
+    </label>
+    <label>
+      <input type="radio" name="tool" class="tool" id="tool-line">
+      Line
+    </label>
+
+    <input type="text" id="output" placeholder="output">
+    <button id="control-load">Load</button>
+    <button id="control-save">Save</button>
+
+
     <script src="index.js"></script>
   </body>
 </html>
