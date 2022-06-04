@@ -94,6 +94,7 @@ function mouseUp() {
 }
 
 function init() {
+  // set up canvas
   theCanvas = el('the-canvas');
 
   theCanvas.width = window.innerWidth;
@@ -108,13 +109,13 @@ function init() {
 
   ctx = theCanvas.getContext('2d');
 
-  el('controls').reset();
-
+  // make tool buttons change selected tool
   let tools = document.getElementsByClassName('tool');
   for (let k = 0; k < tools.length; k++) {
     tools[k].onclick = () => currentTool = k;
   }
 
+  // load and save actions
   el('control-load').onclick = () => {
     drawing = JSON.parse(el('output').value);
     refreshCanvas();
@@ -122,6 +123,11 @@ function init() {
 
   el('control-save').onclick = () => el('output').value = JSON.stringify(drawing);
 
+  // default control settings
+  el('tool-scroll').checked = true;
+  el('control-snap').checked = false;
+
+  // draw for the first time
   refreshCanvas();
 }
 
