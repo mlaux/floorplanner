@@ -1,3 +1,4 @@
+// these need to be the same order as the tool-* elements in the html
 const TOOL_SCROLL = 0;
 const TOOL_RECTANGLE = 1;
 const TOOL_LINE = 2;
@@ -28,6 +29,7 @@ let drawing = {
     },
   ],
 };
+let itemInProgress = null;
 
 function el(id) {
   return document.getElementById(id);
@@ -60,8 +62,17 @@ function mouseMove(evt) {
   refreshCanvas();
 }
 
+function mouseUp() {
+  if (itemInProgress) {
+    drawing.items.push(itemInProgress);
+    itemInProgress = null;
+  }
+
+  dragging = false;
+}
+
 function init() {
-  theCanvas = document.getElementById('the-canvas');
+  theCanvas = el('the-canvas');
 
   theCanvas.width = window.innerWidth;
   theCanvas.height = window.innerHeight - 32;
@@ -70,14 +81,14 @@ function init() {
   scrollOffsetY = window.innerHeight / 2;
 
   theCanvas.onmousedown = mouseDown;
-  theCanvas.onmouseup = () => dragging = false;
   theCanvas.onmousemove = mouseMove;
+  theCanvas.onmouseup = mouseUp;
 
   ctx = theCanvas.getContext('2d');
 
   let tools = document.getElementsByClassName('tool');
   for (let k = 0; k < tools.length; k++) {
-
+    tools[k].onclick = () => currentTool = k;
   }
 
   el('control-load').onclick = () => drawing = JSON.parse(el('output').value);
