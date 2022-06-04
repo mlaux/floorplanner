@@ -36,9 +36,27 @@ function el(id) {
 }
 
 function mouseDown(evt) {
+  dragging = true;
+
   lastX = evt.offsetX;
   lastY = evt.offsetY;
-  dragging = true;
+
+  // 0,0 is the middle of the screen
+  let translatedX = lastX - scrollOffsetX;
+  let translatedY = lastY - scrollOffsetY;
+
+  switch (currentTool) {
+    case TOOL_SCROLL:
+      // no action required
+      break;
+    case TOOL_RECTANGLE:
+      itemInProgress = {
+        type: TOOL_RECTANGLE,
+        point1: [translatedX, translatedY],
+        point2: [translatedX, translatedY],
+      };
+      break;
+  }
 }
 
 function mouseMove(evt) {
@@ -46,14 +64,18 @@ function mouseMove(evt) {
     return;
   }
 
+  let translatedX = evt.offsetX - scrollOffsetX;
+  let translatedY = evt.offsetY - scrollOffsetY;
+
   switch (currentTool) {
     case TOOL_SCROLL:
       scrollOffsetX += evt.offsetX - lastX;
       scrollOffsetY += evt.offsetY - lastY;
       break;
     case TOOL_RECTANGLE:
+      itemInProgress.point2[0] = translatedX;
+      itemInProgress.point2[1] = translatedY;
       break;
-    
   }
 
   lastX = evt.offsetX;
@@ -86,12 +108,18 @@ function init() {
 
   ctx = theCanvas.getContext('2d');
 
+  el('controls').reset();
+
   let tools = document.getElementsByClassName('tool');
   for (let k = 0; k < tools.length; k++) {
     tools[k].onclick = () => currentTool = k;
   }
 
-  el('control-load').onclick = () => drawing = JSON.parse(el('output').value);
+  el('control-load').onclick = () => {
+    drawing = JSON.parse(el('output').value);
+    refreshCanvas();
+  };
+
   el('control-save').onclick = () => el('output').value = JSON.stringify(drawing);
 
   refreshCanvas();
@@ -132,23 +160,28 @@ function drawItems() {
   ctx.save();
   ctx.translate(scrollOffsetX, scrollOffsetY);
 
-  drawing.items.forEach(item => {
-    switch (item.type) {
-      case TOOL_RECTANGLE:
-        let w = item.point2[0] - item.point1[0];
-        let h = item.point2[1] - item.point1[1];
-        ctx.strokeRect(item.point1[0], item.point1[1], w, h);
-        break;
-      case TOOL_LINE: 
-        ctx.beginPath();
-        ctx.moveTo(item.point1[0], item.point1[1]);
-        ctx.lineTo(item.point2[0], item.point2[1]);
-        ctx.stroke();
-        break;
-    }
-  });
+  drawing.items.forEach(drawItem);
+  if (itemInProgress) {
+    drawItem(itemInProgress);
+  }
 
   ctx.restore();
+}
+
+function drawItem(item) {
+  switch (item.type) {
+    case TOOL_RECTANGLE:
+      let w = item.point2[0] - item.point1[0];
+      let h = item.point2[1] - item.point1[1];
+      ctx.strokeRect(item.point1[0], item.point1[1], w, h);
+      break;
+    case TOOL_LINE: 
+      ctx.beginPath();
+      ctx.moveTo(item.point1[0], item.point1[1]);
+      ctx.lineTo(item.point2[0], item.point2[1]);
+      ctx.stroke();
+      break;
+  }
 }
 
 window.onload = init;
