@@ -15,7 +15,18 @@ let lastY = 0;
 let dragging = false;
 
 let drawing = {
-  items: [],
+  items: [
+    {
+      type: TOOL_RECTANGLE,
+      point1: [0, 0],
+      point2: [100, 100],
+    },
+    {
+      type: TOOL_LINE,
+      point1: [50, 50],
+      point2: [150, 150],
+    },
+  ],
 };
 
 function el(id) {
@@ -60,8 +71,6 @@ function init() {
   theCanvas.onmousemove = mouseMove;
 
   ctx = theCanvas.getContext('2d');
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = '#ccc';
 
   let tools = document.getElementsByClassName('tool');
   for (let k = 0; k < tools.length; k++) {
@@ -79,9 +88,13 @@ function refreshCanvas() {
   ctx.fillRect(0, 0, theCanvas.width, theCanvas.height);
 
   drawGrid();
+  drawItems();
 }
 
 function drawGrid() {
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ccc';
+
   let startOffsetX = scrollOffsetX % gridSize;
   let startOffsetY = scrollOffsetY % gridSize;
 
@@ -97,6 +110,31 @@ function drawGrid() {
     ctx.lineTo(x, theCanvas.height);
     ctx.stroke();
   }
+}
+
+function drawItems() {
+  ctx.strokeStyle = '#000';
+
+  ctx.save();
+  ctx.translate(scrollOffsetX, scrollOffsetY);
+
+  drawing.items.forEach(item => {
+    switch (item.type) {
+      case TOOL_RECTANGLE:
+        let w = item.point2[0] - item.point1[0];
+        let h = item.point2[1] - item.point1[1];
+        ctx.strokeRect(item.point1[0], item.point1[1], w, h);
+        break;
+      case TOOL_LINE: 
+        ctx.beginPath();
+        ctx.moveTo(item.point1[0], item.point1[1]);
+        ctx.lineTo(item.point2[0], item.point2[1]);
+        ctx.stroke();
+        break;
+    }
+  });
+
+  ctx.restore();
 }
 
 window.onload = init;
