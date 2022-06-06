@@ -30,9 +30,26 @@ let drawing = {
   ],
 };
 let itemInProgress = null;
+let selectedItem = null;
 
 function el(id) {
   return document.getElementById(id);
+}
+
+function checkForSelectedItem(x, y) {
+  selectedItem = null;
+  drawing.items.forEach(item => {
+    let dist;
+    if (item.type == TOOL_LINE) {
+      dist = distancePointLine([x, y], item);
+    } else if (item.type == TOOL_RECTANGLE) {
+      dist = distancePointRect([x, y], item);
+    }
+
+    if (dist < 9) {
+      selectedItem = item;
+    }
+  });
 }
 
 function mouseDown(evt) {
@@ -47,16 +64,19 @@ function mouseDown(evt) {
 
   switch (currentTool) {
     case TOOL_SCROLL:
-      // no action required
+      checkForSelectedItem(translatedX, translatedY);
       break;
     case TOOL_RECTANGLE:
+    case TOOL_LINE:
       itemInProgress = {
-        type: TOOL_RECTANGLE,
+        type: currentTool,
         point1: [translatedX, translatedY],
         point2: [translatedX, translatedY],
       };
       break;
   }
+
+  refreshCanvas();
 }
 
 function mouseMove(evt) {
@@ -73,6 +93,7 @@ function mouseMove(evt) {
       scrollOffsetY += evt.offsetY - lastY;
       break;
     case TOOL_RECTANGLE:
+    case TOOL_LINE:
       itemInProgress.point2[0] = translatedX;
       itemInProgress.point2[1] = translatedY;
       break;
@@ -84,9 +105,69 @@ function mouseMove(evt) {
   refreshCanvas();
 }
 
+function pointsDiffer(item) {
+  return item.point1[0] != item.point2[0] || item.point1[1] != item.point2[1];
+}
+
+function distancePointPoint(p1, p2) {
+  return (p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]);
+}
+
+// https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+function distancePointLine(pt, line) {
+  let l2 = distancePointPoint(line.point1, line.point2);
+  if (l2 == 0) {
+    // line is just one point, not a line
+    return distancePointPoint(pt, line.point1);
+  }
+
+  let t = ((pt[0] - line.point1[0]) * (line.point2[0] - line.point1[0]) 
+          + (pt[1] - line.point1[1]) * (line.point2[1] - line.point1[1])) / l2;
+  
+  // clamp to [0, 1]
+  t = Math.max(0, Math.min(1, t));
+
+  // find distance from given point to the point created by advancing along the line
+  // to the spot perpendicular to the given point
+  return distancePointPoint(pt, [line.point1[0] + t * (line.point2[0] - line.point1[0]), 
+      line.point1[1] + t * (line.point2[1] - line.point1[1])]);
+}
+
+function distancePointRect(pt, rect) {
+  let topLine = {
+    point1: [rect.point1[0], rect.point1[1]],
+    point2: [rect.point2[0], rect.point1[1]],
+  };
+
+  let rightLine = {
+    point1: [rect.point2[0], rect.point1[1]],
+    point2: [rect.point2[0], rect.point2[1]],
+  };
+
+  let bottomLine = {
+    point1: [rect.point1[0], rect.point2[1]],
+    point2: [rect.point2[0], rect.point2[1]],
+  };
+
+  let leftLine = {
+    point1: [rect.point1[0], rect.point1[1]],
+    point2: [rect.point1[0], rect.point2[1]],
+  };
+
+  let top = distancePointLine(pt, topLine);
+  let right = distancePointLine(pt, rightLine);
+  let bottom = distancePointLine(pt, bottomLine);
+  let left = distancePointLine(pt, leftLine);
+
+  return Math.min(top, right, bottom, left);
+}
+
 function mouseUp() {
   if (itemInProgress) {
-    drawing.items.push(itemInProgress);
+    // only add to array if they actually moved the mouse
+    if (pointsDiffer(itemInProgress)) {
+      drawing.items.push(itemInProgress);
+    }
     itemInProgress = null;
   }
 
@@ -175,6 +256,12 @@ function drawItems() {
 }
 
 function drawItem(item) {
+  if (item === selectedItem) {
+    ctx.strokeStyle = '#f00';
+  } else {
+    ctx.strokeStyle = '#000';
+  }
+
   switch (item.type) {
     case TOOL_RECTANGLE:
       let w = item.point2[0] - item.point1[0];
