@@ -98,8 +98,19 @@ function mouseMove(evt) {
 
   switch (currentTool) {
     case TOOL_SCROLL:
-      scrollOffsetX += evt.offsetX - lastX;
-      scrollOffsetY += evt.offsetY - lastY;
+      let dx = evt.offsetX - lastX;
+      let dy = evt.offsetY - lastY;
+      if (selectedItem) {
+        // move selected item
+        selectedItem.point1[0] += dx;
+        selectedItem.point2[0] += dx;
+        selectedItem.point1[1] += dy;
+        selectedItem.point2[1] += dy;
+      } else {
+        // move view
+        scrollOffsetX += dx;
+        scrollOffsetY += dy;
+      }
       break;
     case TOOL_RECTANGLE:
     case TOOL_LINE:
