@@ -14,6 +14,7 @@ let scrollOffsetY = 0;
 let lastX = 0;
 let lastY = 0;
 let dragging = false;
+let snapToGrid = false;
 
 let drawing = {
   items: [
@@ -52,6 +53,10 @@ function checkForSelectedItem(x, y) {
   });
 }
 
+function snap(x) {
+  return Math.round(x / gridSize) * gridSize;
+}
+
 function mouseDown(evt) {
   dragging = true;
 
@@ -68,6 +73,10 @@ function mouseDown(evt) {
       break;
     case TOOL_RECTANGLE:
     case TOOL_LINE:
+      if (snapToGrid) {
+        translatedX = snap(translatedX);
+        translatedY = snap(translatedY);
+      }
       itemInProgress = {
         type: currentTool,
         point1: [translatedX, translatedY],
@@ -94,6 +103,10 @@ function mouseMove(evt) {
       break;
     case TOOL_RECTANGLE:
     case TOOL_LINE:
+      if (snapToGrid) {
+        translatedX = snap(translatedX);
+        translatedY = snap(translatedY);
+      }
       itemInProgress.point2[0] = translatedX;
       itemInProgress.point2[1] = translatedY;
       break;
@@ -133,6 +146,7 @@ function distancePointLine(pt, line) {
       line.point1[1] + t * (line.point2[1] - line.point1[1])]);
 }
 
+// uses the line test for each edge of the rectangle
 function distancePointRect(pt, rect) {
   let topLine = {
     point1: [rect.point1[0], rect.point1[1]],
@@ -203,6 +217,7 @@ function init() {
   };
 
   el('control-save').onclick = () => el('output').value = JSON.stringify(drawing);
+  el('control-snap').onclick = evt => snapToGrid = evt.target.checked;
 
   // default control settings
   el('tool-scroll').checked = true;
