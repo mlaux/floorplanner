@@ -217,7 +217,9 @@ function init() {
   };
 
   el('control-save').onclick = () => el('output').value = JSON.stringify(drawing);
-  el('control-snap').onclick = evt => snapToGrid = evt.target.checked;
+  el('control-snap').onclick = evt => {
+    snapToGrid = evt.target.checked;
+  };
 
   // default control settings
   el('tool-scroll').checked = true;
