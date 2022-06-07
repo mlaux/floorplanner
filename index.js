@@ -210,6 +210,8 @@ function mouseDown(evt) {
   let translatedX = lastX - scrollOffsetX;
   let translatedY = lastY - scrollOffsetY;
 
+  selectedItem = null;
+
   switch (currentTool) {
     case TOOL_SCROLL:
       selectedItem = getSelectedItem(translatedX, translatedY);
