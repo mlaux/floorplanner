@@ -2,6 +2,10 @@
 const TOOL_SCROLL = 0;
 const TOOL_RECTANGLE = 1;
 const TOOL_LINE = 2;
+const TOOL_DELETE = 3;
+
+// how far away the mouse can be for an item to be selected on click (squared)
+const SELECT_DISTANCE = 25;
 
 let currentTool = TOOL_SCROLL;
 let gridSize = 32;
@@ -37,96 +41,8 @@ function el(id) {
   return document.getElementById(id);
 }
 
-function checkForSelectedItem(x, y) {
-  selectedItem = null;
-  drawing.items.forEach(item => {
-    let dist;
-    if (item.type == TOOL_LINE) {
-      dist = distancePointLine([x, y], item);
-    } else if (item.type == TOOL_RECTANGLE) {
-      dist = distancePointRect([x, y], item);
-    }
-
-    if (dist < 9) {
-      selectedItem = item;
-    }
-  });
-}
-
 function snap(x) {
   return Math.round(x / gridSize) * gridSize;
-}
-
-function mouseDown(evt) {
-  dragging = true;
-
-  lastX = evt.offsetX;
-  lastY = evt.offsetY;
-
-  // 0,0 is the middle of the screen
-  let translatedX = lastX - scrollOffsetX;
-  let translatedY = lastY - scrollOffsetY;
-
-  switch (currentTool) {
-    case TOOL_SCROLL:
-      checkForSelectedItem(translatedX, translatedY);
-      break;
-    case TOOL_RECTANGLE:
-    case TOOL_LINE:
-      if (snapToGrid) {
-        translatedX = snap(translatedX);
-        translatedY = snap(translatedY);
-      }
-      itemInProgress = {
-        type: currentTool,
-        point1: [translatedX, translatedY],
-        point2: [translatedX, translatedY],
-      };
-      break;
-  }
-
-  refreshCanvas();
-}
-
-function mouseMove(evt) {
-  if (!dragging) {
-    return;
-  }
-
-  let translatedX = evt.offsetX - scrollOffsetX;
-  let translatedY = evt.offsetY - scrollOffsetY;
-
-  switch (currentTool) {
-    case TOOL_SCROLL:
-      let dx = evt.offsetX - lastX;
-      let dy = evt.offsetY - lastY;
-      if (selectedItem) {
-        // move selected item
-        selectedItem.point1[0] += dx;
-        selectedItem.point2[0] += dx;
-        selectedItem.point1[1] += dy;
-        selectedItem.point2[1] += dy;
-      } else {
-        // move view
-        scrollOffsetX += dx;
-        scrollOffsetY += dy;
-      }
-      break;
-    case TOOL_RECTANGLE:
-    case TOOL_LINE:
-      if (snapToGrid) {
-        translatedX = snap(translatedX);
-        translatedY = snap(translatedY);
-      }
-      itemInProgress.point2[0] = translatedX;
-      itemInProgress.point2[1] = translatedY;
-      break;
-  }
-
-  lastX = evt.offsetX;
-  lastY = evt.offsetY;
-
-  refreshCanvas();
 }
 
 function pointsDiffer(item) {
@@ -187,6 +103,167 @@ function distancePointRect(pt, rect) {
   return Math.min(top, right, bottom, left);
 }
 
+function drawGrid() {
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ccc';
+
+  let startOffsetX = scrollOffsetX % gridSize;
+  let startOffsetY = scrollOffsetY % gridSize;
+
+  for (let y = startOffsetY; y < theCanvas.height; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(theCanvas.width, y);
+    ctx.stroke();
+  }
+  for (let x = startOffsetX; x < theCanvas.width; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, theCanvas.height);
+    ctx.stroke();
+  }
+}
+
+function drawItem(item) {
+  if (item === selectedItem) {
+    ctx.strokeStyle = '#f00';
+  } else {
+    ctx.strokeStyle = '#000';
+  }
+
+  switch (item.type) {
+    case TOOL_RECTANGLE:
+      let w = item.point2[0] - item.point1[0];
+      let h = item.point2[1] - item.point1[1];
+      ctx.strokeRect(item.point1[0], item.point1[1], w, h);
+      break;
+    case TOOL_LINE: 
+      ctx.beginPath();
+      ctx.moveTo(item.point1[0], item.point1[1]);
+      ctx.lineTo(item.point2[0], item.point2[1]);
+      ctx.stroke();
+      break;
+  }
+}
+
+function drawItems() {
+  ctx.strokeStyle = '#000';
+
+  ctx.save();
+  ctx.translate(scrollOffsetX, scrollOffsetY);
+
+  drawing.items.forEach(drawItem);
+  if (itemInProgress) {
+    drawItem(itemInProgress);
+  }
+
+  ctx.restore();
+}
+
+function refreshCanvas() {
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, theCanvas.width, theCanvas.height);
+
+  drawGrid();
+  drawItems();
+}
+
+function getSelectedItem(x, y) {
+  let foundItem = null;
+  drawing.items.forEach(item => {
+    let dist;
+    if (item.type == TOOL_LINE) {
+      dist = distancePointLine([x, y], item);
+    } else if (item.type == TOOL_RECTANGLE) {
+      dist = distancePointRect([x, y], item);
+    }
+
+    if (dist < SELECT_DISTANCE) {
+      foundItem = item;
+    }
+  });
+
+  return foundItem;
+}
+
+function mouseDown(evt) {
+  dragging = true;
+
+  lastX = evt.offsetX;
+  lastY = evt.offsetY;
+
+  // 0,0 is the middle of the screen
+  let translatedX = lastX - scrollOffsetX;
+  let translatedY = lastY - scrollOffsetY;
+
+  switch (currentTool) {
+    case TOOL_SCROLL:
+      selectedItem = getSelectedItem(translatedX, translatedY);
+      break;
+    case TOOL_RECTANGLE:
+    case TOOL_LINE:
+      if (snapToGrid) {
+        translatedX = snap(translatedX);
+        translatedY = snap(translatedY);
+      }
+      itemInProgress = {
+        type: currentTool,
+        point1: [translatedX, translatedY],
+        point2: [translatedX, translatedY],
+      };
+      break;
+    case TOOL_DELETE:
+      let item = getSelectedItem(translatedX, translatedY);
+      if (item) {
+        drawing.items.splice(drawing.items.indexOf(item), 1);
+      }
+      break;
+  }
+
+  refreshCanvas();
+}
+
+function mouseMove(evt) {
+  if (!dragging) {
+    return;
+  }
+
+  let translatedX = evt.offsetX - scrollOffsetX;
+  let translatedY = evt.offsetY - scrollOffsetY;
+
+  switch (currentTool) {
+    case TOOL_SCROLL:
+      let dx = evt.offsetX - lastX;
+      let dy = evt.offsetY - lastY;
+      if (selectedItem) {
+        // move selected item
+        selectedItem.point1[0] += dx;
+        selectedItem.point2[0] += dx;
+        selectedItem.point1[1] += dy;
+        selectedItem.point2[1] += dy;
+      } else {
+        // move view
+        scrollOffsetX += dx;
+        scrollOffsetY += dy;
+      }
+      break;
+    case TOOL_RECTANGLE:
+    case TOOL_LINE:
+      if (snapToGrid) {
+        translatedX = snap(translatedX);
+        translatedY = snap(translatedY);
+      }
+      itemInProgress.point2[0] = translatedX;
+      itemInProgress.point2[1] = translatedY;
+      break;
+  }
+
+  lastX = evt.offsetX;
+  lastY = evt.offsetY;
+
+  refreshCanvas();
+}
+
 function mouseUp() {
   if (itemInProgress) {
     // only add to array if they actually moved the mouse
@@ -194,9 +271,17 @@ function mouseUp() {
       drawing.items.push(itemInProgress);
     }
     itemInProgress = null;
+  } else if (selectedItem && snapToGrid) {
+    let dx = selectedItem.point2[0] - selectedItem.point1[0];
+    let dy = selectedItem.point2[1] - selectedItem.point1[1];
+    selectedItem.point1[0] = snap(selectedItem.point1[0]);
+    selectedItem.point1[1] = snap(selectedItem.point1[1]);
+    selectedItem.point2[0] = selectedItem.point1[0] + dx;
+    selectedItem.point2[1] = selectedItem.point1[1] + dy;
   }
 
   dragging = false;
+  refreshCanvas();
 }
 
 function init() {
@@ -238,71 +323,6 @@ function init() {
 
   // draw for the first time
   refreshCanvas();
-}
-
-function refreshCanvas() {
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, theCanvas.width, theCanvas.height);
-
-  drawGrid();
-  drawItems();
-}
-
-function drawGrid() {
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = '#ccc';
-
-  let startOffsetX = scrollOffsetX % gridSize;
-  let startOffsetY = scrollOffsetY % gridSize;
-
-  for (let y = startOffsetY; y < theCanvas.height; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(theCanvas.width, y);
-    ctx.stroke();
-  }
-  for (let x = startOffsetX; x < theCanvas.width; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, theCanvas.height);
-    ctx.stroke();
-  }
-}
-
-function drawItems() {
-  ctx.strokeStyle = '#000';
-
-  ctx.save();
-  ctx.translate(scrollOffsetX, scrollOffsetY);
-
-  drawing.items.forEach(drawItem);
-  if (itemInProgress) {
-    drawItem(itemInProgress);
-  }
-
-  ctx.restore();
-}
-
-function drawItem(item) {
-  if (item === selectedItem) {
-    ctx.strokeStyle = '#f00';
-  } else {
-    ctx.strokeStyle = '#000';
-  }
-
-  switch (item.type) {
-    case TOOL_RECTANGLE:
-      let w = item.point2[0] - item.point1[0];
-      let h = item.point2[1] - item.point1[1];
-      ctx.strokeRect(item.point1[0], item.point1[1], w, h);
-      break;
-    case TOOL_LINE: 
-      ctx.beginPath();
-      ctx.moveTo(item.point1[0], item.point1[1]);
-      ctx.lineTo(item.point2[0], item.point2[1]);
-      ctx.stroke();
-      break;
-  }
 }
 
 window.onload = init;
