@@ -2,7 +2,8 @@
 const TOOL_SCROLL = 0;
 const TOOL_RECTANGLE = 1;
 const TOOL_LINE = 2;
-const TOOL_DELETE = 3;
+const TOOL_TEXT = 3;
+const TOOL_DELETE = 4;
 
 // how far away the mouse can be for an item to be selected on click (squared)
 const SELECT_DISTANCE = 25;
@@ -47,6 +48,11 @@ function snap(x) {
 
 function pointsDiffer(item) {
   return item.point1[0] != item.point2[0] || item.point1[1] != item.point2[1];
+}
+
+function pointInRect(pt, rect) {
+  return pt[0] >= rect.point1[0] && pt[0] < rect.point2[0] 
+      && pt[1] >= rect.point1[1] && pt[1] < rect.point2[1]; 
 }
 
 function distancePointPoint(p1, p2) {
@@ -126,10 +132,13 @@ function drawGrid() {
 
 function drawItem(item) {
   if (item === selectedItem) {
-    ctx.strokeStyle = '#f00';
+    color = '#f00';
   } else {
-    ctx.strokeStyle = '#000';
+    color = '#000';
   }
+
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
 
   switch (item.type) {
     case TOOL_RECTANGLE:
@@ -143,11 +152,16 @@ function drawItem(item) {
       ctx.lineTo(item.point2[0], item.point2[1]);
       ctx.stroke();
       break;
+    case TOOL_TEXT:
+      // point2 for the y position b/c it measures text from the bottom
+      ctx.fillText(item.text, item.point1[0], item.point2[1]);
+      break;
   }
 }
 
 function drawItems() {
   ctx.strokeStyle = '#000';
+  ctx.fillStyle = '#000';
 
   ctx.save();
   ctx.translate(scrollOffsetX, scrollOffsetY);
@@ -178,7 +192,7 @@ function getSelectedItem(x, y) {
       dist = distancePointRect([x, y], item);
     }
 
-    if (dist < SELECT_DISTANCE) {
+    if (dist < SELECT_DISTANCE || (item.type == TOOL_TEXT && pointInRect([x, y], item))) {
       foundItem = item;
     }
   });
@@ -211,6 +225,24 @@ function mouseDown(evt) {
         point1: [translatedX, translatedY],
         point2: [translatedX, translatedY],
       };
+      break;
+    case TOOL_TEXT:
+      let text = prompt('Enter text');
+      if (text) {
+        text = text.trim();
+        if (text.length) {
+          let metrics = ctx.measureText(text);
+          // only supported in chrome 77 and up, FF 74 and up
+          // this is not deterministic per-PC but not worrying about that now
+          let height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+          drawing.items.push({
+            type: TOOL_TEXT,
+            point1: [translatedX, translatedY],
+            point2: [translatedX + metrics.width, translatedY + height],
+            text,
+          });
+        }
+      }
       break;
     case TOOL_DELETE:
       let item = getSelectedItem(translatedX, translatedY);
@@ -299,6 +331,7 @@ function init() {
   theCanvas.onmouseup = mouseUp;
 
   ctx = theCanvas.getContext('2d');
+  ctx.font = '20px sans-serif';
 
   // make tool buttons change selected tool
   let tools = document.getElementsByClassName('tool');
