@@ -42,6 +42,10 @@ function el(id) {
   return document.getElementById(id);
 }
 
+function getCurrentColor() {
+  return el('control-color').value;
+}
+
 function snap(x) {
   return Math.round(x / gridSize) * gridSize;
 }
@@ -133,6 +137,8 @@ function drawGrid() {
 function drawItem(item) {
   if (item === selectedItem) {
     color = '#f00';
+  } else if (item.color) {
+    color = item.color;
   } else {
     color = '#000';
   }
@@ -226,6 +232,7 @@ function mouseDown(evt) {
         type: currentTool,
         point1: [translatedX, translatedY],
         point2: [translatedX, translatedY],
+        color: getCurrentColor(),
       };
       break;
     case TOOL_TEXT:
@@ -241,6 +248,7 @@ function mouseDown(evt) {
             type: TOOL_TEXT,
             point1: [translatedX, translatedY],
             point2: [translatedX + metrics.width, translatedY + height],
+            color: getCurrentColor(),
             text,
           });
         }
@@ -355,6 +363,7 @@ function init() {
   // default control settings
   el('tool-scroll').checked = true;
   el('control-snap').checked = false;
+  el('control-color').value = '#000000';
 
   // draw for the first time
   refreshCanvas();

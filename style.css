@@ -15,3 +15,8 @@ body {
 label {
   margin-right: 16px;
 }
+
+input[type=color] {
+  border: 0;
+  background-color: #fff;
+}
