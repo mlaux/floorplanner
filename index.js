@@ -7,6 +7,9 @@ const TOOL_DELETE = 4;
 
 // how far away the mouse can be for an item to be selected on click (squared)
 const SELECT_DISTANCE = 25;
+const GRID_WIDTH = 2;
+const LINE_WIDTH = 2;
+const LINE_WIDTH_SELECTED = 3;
 
 let currentTool = TOOL_SCROLL;
 let gridSize = 32;
@@ -26,12 +29,21 @@ let drawing = {
     {
       type: TOOL_RECTANGLE,
       point1: [0, 0],
-      point2: [100, 100],
+      point2: [96, 96],
+      color: '#ff00ff',
     },
     {
       type: TOOL_LINE,
-      point1: [50, 50],
-      point2: [150, 150],
+      point1: [48, 48],
+      point2: [144, 144],
+      color: '#00ff00',
+    },
+    {
+      type: TOOL_TEXT,
+      point1: [12, 112],
+      point2: [82, 125],
+      color: '#3366cc',
+      text: 'test text',
     },
   ],
 };
@@ -114,7 +126,7 @@ function distancePointRect(pt, rect) {
 }
 
 function drawGrid() {
-  ctx.lineWidth = 2;
+  ctx.lineWidth = GRID_WIDTH;
   ctx.strokeStyle = '#ccc';
 
   let startOffsetX = scrollOffsetX % gridSize;
@@ -136,11 +148,15 @@ function drawGrid() {
 
 function drawItem(item) {
   if (item === selectedItem) {
+    ctx.lineWidth = LINE_WIDTH_SELECTED;
     color = '#f00';
-  } else if (item.color) {
-    color = item.color;
   } else {
-    color = '#000';
+    ctx.lineWidth = LINE_WIDTH;
+    if (item.color) {
+      color = item.color;
+    } else {
+      color = '#000';
+    }
   }
 
   ctx.strokeStyle = color;
