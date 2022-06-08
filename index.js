@@ -10,13 +10,18 @@ const SELECT_DISTANCE = 25;
 const GRID_WIDTH = 2;
 const LINE_WIDTH = 2;
 const LINE_WIDTH_SELECTED = 3;
-const ZOOMS = [.25, .5, 1, 1.25, 1.5, 2, 3, 4];
+const ZOOMS = [.5, .67, .8, .9, 1, 1.1, 1.25, 1.33, 1.5, 1.75, 2];
 // needed for mouse coordinate translation when zoomed in or out
-const INV_ZOOMS = [4, 2, 1, .8, 2/3, .5, 1/3, .25];
+const INV_ZOOMS = [];
+(function() {
+  for (let k = 0; k < ZOOMS.length; k++) {
+    INV_ZOOMS[k] = 1 / ZOOMS[k];
+  }
+})();
 
 let currentTool = TOOL_SCROLL;
 let gridSize = 32;
-let zoomIndex = 2;
+let zoomIndex = 4;
 
 let theCanvas = null;
 let ctx = null;
