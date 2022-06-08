@@ -10,8 +10,9 @@ const SELECT_DISTANCE = 25;
 const GRID_WIDTH = 2;
 const LINE_WIDTH = 2;
 const LINE_WIDTH_SELECTED = 3;
-const ZOOMS = [.125, .25, .5, 1, 1.25, 1.5, 2, 3, 4];
-const INV_ZOOMS = [8, 4, 2, 1, .8, 2/3, .5, 1/3, .25]
+const ZOOMS = [.25, .5, 1, 1.25, 1.5, 2, 3, 4];
+// needed for mouse coordinate translation when zoomed in or out
+const INV_ZOOMS = [4, 2, 1, .8, 2/3, .5, 1/3, .25];
 
 let currentTool = TOOL_SCROLL;
 let gridSize = 32;
@@ -62,8 +63,7 @@ function getCurrentColor() {
 }
 
 function snap(x) {
-  return Math.round(x);
-  // return Math.round(x / gridSize) * gridSize;
+  return Math.round(x / gridSize) * gridSize;
 }
 
 function pointsDiffer(item) {
@@ -138,17 +138,20 @@ function drawGrid() {
 
   let startOffsetX = scrollOffsetX % gridSize;
   let startOffsetY = scrollOffsetY % gridSize;
+  // draw more lines than necessary in case we're zoomed out -
+  // this should't hurt performance too bad
+  let extent = INV_ZOOMS[0];
 
-  for (let y = startOffsetY; y < 8 * theCanvas.height; y += gridSize) {
+  for (let y = startOffsetY; y < extent * theCanvas.height; y += gridSize) {
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(8 * theCanvas.width, y);
+    ctx.lineTo(extent * theCanvas.width, y);
     ctx.stroke();
   }
-  for (let x = startOffsetX; x < 8 * theCanvas.width; x += gridSize) {
+  for (let x = startOffsetX; x < extent * theCanvas.width; x += gridSize) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, 8 * theCanvas.height);
+    ctx.lineTo(x, extent * theCanvas.height);
     ctx.stroke();
   }
 
@@ -240,8 +243,8 @@ function mouseDown(evt) {
   lastY = evt.offsetY;
 
   // 0,0 is the middle of the screen
-  let translatedX = lastX - scrollOffsetX;
-  let translatedY = lastY - scrollOffsetY;
+  let translatedX = INV_ZOOMS[zoomIndex] * lastX - scrollOffsetX;
+  let translatedY = INV_ZOOMS[zoomIndex] * lastY - scrollOffsetY;
 
   selectedItem = null;
 
@@ -297,8 +300,8 @@ function mouseMove(evt) {
     return;
   }
 
-  let translatedX = evt.offsetX - scrollOffsetX;
-  let translatedY = evt.offsetY - scrollOffsetY;
+  let translatedX = INV_ZOOMS[zoomIndex] * evt.offsetX - scrollOffsetX;
+  let translatedY = INV_ZOOMS[zoomIndex] * evt.offsetY - scrollOffsetY;
 
   switch (currentTool) {
     case TOOL_SCROLL:
