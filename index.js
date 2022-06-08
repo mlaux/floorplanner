@@ -16,7 +16,7 @@ const INV_ZOOMS = [4, 2, 1, .8, 2/3, .5, 1/3, .25];
 
 let currentTool = TOOL_SCROLL;
 let gridSize = 32;
-let zoomIndex = 3;
+let zoomIndex = 2;
 
 let theCanvas = null;
 let ctx = null;
@@ -64,6 +64,12 @@ function getCurrentColor() {
 
 function snap(x) {
   return Math.round(x / gridSize) * gridSize;
+}
+
+function scaleScrollPos(oldZoom) {
+  // scale scroll position by ratio of new zoom level to old zoom level
+  scrollOffsetX *= INV_ZOOMS[zoomIndex] / INV_ZOOMS[oldZoom];
+  scrollOffsetY *= INV_ZOOMS[zoomIndex] / INV_ZOOMS[oldZoom];
 }
 
 function pointsDiffer(item) {
@@ -363,8 +369,8 @@ function init() {
   theCanvas.width = window.innerWidth;
   theCanvas.height = window.innerHeight - 32;
 
-  scrollOffsetX = window.innerWidth / 2;
-  scrollOffsetY = window.innerHeight / 2;
+  scrollOffsetX = theCanvas.width / 2;
+  scrollOffsetY = theCanvas.height / 2;
 
   theCanvas.onmousedown = mouseDown;
   theCanvas.onmousemove = mouseMove;
@@ -389,17 +395,20 @@ function init() {
   el('control-snap').onclick = evt => {
     snapToGrid = evt.target.checked;
   };
-  el('control-zoom-out').onclick = evt => {
+
+  el('control-zoom-out').onclick = () => {
     if (zoomIndex > 0) {
       --zoomIndex;
+      scaleScrollPos(zoomIndex + 1);
+      refreshCanvas();
     }
-    refreshCanvas();
   }
-  el('control-zoom-in').onclick = evt => {
+  el('control-zoom-in').onclick = () => {
     if (zoomIndex < ZOOMS.length - 1) {
       ++zoomIndex;
+      scaleScrollPos(zoomIndex - 1);
+      refreshCanvas();
     }
-    refreshCanvas();
   }
 
   // default control settings
