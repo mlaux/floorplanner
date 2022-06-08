@@ -34,6 +34,7 @@ let dragging = false;
 let snapToGrid = false;
 
 let drawing = {
+  version: 1,
   items: [
     {
       type: TOOL_RECTANGLE,
