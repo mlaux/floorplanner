@@ -71,12 +71,6 @@ function snap(x) {
   return Math.round(x / gridSize) * gridSize;
 }
 
-function scaleScrollPos(oldZoom) {
-  // scale scroll position by ratio of new zoom level to old zoom level
-  scrollOffsetX *= INV_ZOOMS[zoomIndex] / INV_ZOOMS[oldZoom];
-  scrollOffsetY *= INV_ZOOMS[zoomIndex] / INV_ZOOMS[oldZoom];
-}
-
 function pointsDiffer(item) {
   return item.point1[0] != item.point2[0] || item.point1[1] != item.point2[1];
 }
@@ -247,6 +241,28 @@ function getSelectedItem(x, y) {
   return foundItem;
 }
 
+function scaleScrollPos(oldZoom) {
+  // scale scroll position by ratio of new zoom level to old zoom level
+  scrollOffsetX *= INV_ZOOMS[zoomIndex] / INV_ZOOMS[oldZoom];
+  scrollOffsetY *= INV_ZOOMS[zoomIndex] / INV_ZOOMS[oldZoom];
+}
+
+function zoomOut() {
+  if (zoomIndex > 0) {
+    --zoomIndex;
+    scaleScrollPos(zoomIndex + 1);
+    refreshCanvas();
+  }
+}
+
+function zoomIn() {
+  if (zoomIndex < ZOOMS.length - 1) {
+    ++zoomIndex;
+    scaleScrollPos(zoomIndex - 1);
+    refreshCanvas();
+  }
+}
+
 function mouseDown(evt) {
   dragging = true;
 
@@ -367,6 +383,14 @@ function mouseUp() {
   refreshCanvas();
 }
 
+function mouseWheel(evt) {
+  if (evt.deltaY > 0) {
+    zoomIn();
+  } else {
+    zoomOut();
+  }
+}
+
 function init() {
   // set up canvas
   theCanvas = el('the-canvas');
@@ -380,6 +404,7 @@ function init() {
   theCanvas.onmousedown = mouseDown;
   theCanvas.onmousemove = mouseMove;
   theCanvas.onmouseup = mouseUp;
+  theCanvas.onwheel = mouseWheel;
 
   ctx = theCanvas.getContext('2d');
   ctx.font = '20px sans-serif';
@@ -400,21 +425,8 @@ function init() {
   el('control-snap').onclick = evt => {
     snapToGrid = evt.target.checked;
   };
-
-  el('control-zoom-out').onclick = () => {
-    if (zoomIndex > 0) {
-      --zoomIndex;
-      scaleScrollPos(zoomIndex + 1);
-      refreshCanvas();
-    }
-  }
-  el('control-zoom-in').onclick = () => {
-    if (zoomIndex < ZOOMS.length - 1) {
-      ++zoomIndex;
-      scaleScrollPos(zoomIndex - 1);
-      refreshCanvas();
-    }
-  }
+  el('control-zoom-out').onclick = zoomOut;
+  el('control-zoom-in').onclick = zoomIn;
 
   // default control settings
   el('tool-scroll').checked = true;
