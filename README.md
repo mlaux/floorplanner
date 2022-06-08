@@ -13,6 +13,6 @@ Very quick floor planning tool written for [Arcade UFO](http://arcadeufo.com/) t
 
 ## Issues
 
-* Everything is stored in pixel coordinates (should probably be 1 unit per grid line)
+* Everything is stored in pixel coordinates (should probably be 1 unit per inch)
 * Program organization is starting to get messy
 
