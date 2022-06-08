@@ -10,9 +10,12 @@ const SELECT_DISTANCE = 25;
 const GRID_WIDTH = 2;
 const LINE_WIDTH = 2;
 const LINE_WIDTH_SELECTED = 3;
+const ZOOMS = [.125, .25, .5, 1, 1.25, 1.5, 2, 3, 4];
+const INV_ZOOMS = [8, 4, 2, 1, .8, 2/3, .5, 1/3, .25]
 
 let currentTool = TOOL_SCROLL;
 let gridSize = 32;
+let zoomIndex = 3;
 
 let theCanvas = null;
 let ctx = null;
@@ -59,7 +62,8 @@ function getCurrentColor() {
 }
 
 function snap(x) {
-  return Math.round(x / gridSize) * gridSize;
+  return Math.round(x);
+  // return Math.round(x / gridSize) * gridSize;
 }
 
 function pointsDiffer(item) {
@@ -129,21 +133,26 @@ function drawGrid() {
   ctx.lineWidth = GRID_WIDTH;
   ctx.strokeStyle = '#ccc';
 
+  ctx.save();
+  ctx.scale(ZOOMS[zoomIndex], ZOOMS[zoomIndex]);
+
   let startOffsetX = scrollOffsetX % gridSize;
   let startOffsetY = scrollOffsetY % gridSize;
 
-  for (let y = startOffsetY; y < theCanvas.height; y += gridSize) {
+  for (let y = startOffsetY; y < 8 * theCanvas.height; y += gridSize) {
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(theCanvas.width, y);
+    ctx.lineTo(8 * theCanvas.width, y);
     ctx.stroke();
   }
-  for (let x = startOffsetX; x < theCanvas.width; x += gridSize) {
+  for (let x = startOffsetX; x < 8 * theCanvas.width; x += gridSize) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, theCanvas.height);
+    ctx.lineTo(x, 8 * theCanvas.height);
     ctx.stroke();
   }
+
+  ctx.restore();
 }
 
 function drawItem(item) {
@@ -186,6 +195,7 @@ function drawItems() {
   ctx.fillStyle = '#000';
 
   ctx.save();
+  ctx.scale(ZOOMS[zoomIndex], ZOOMS[zoomIndex]);
   ctx.translate(scrollOffsetX, scrollOffsetY);
 
   drawing.items.forEach(drawItem);
@@ -200,6 +210,7 @@ function refreshCanvas() {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, theCanvas.width, theCanvas.height);
 
+  el('current-zoom').innerText = ZOOMS[zoomIndex] + 'x';
   drawGrid();
   drawItems();
 }
@@ -291,8 +302,8 @@ function mouseMove(evt) {
 
   switch (currentTool) {
     case TOOL_SCROLL:
-      let dx = evt.offsetX - lastX;
-      let dy = evt.offsetY - lastY;
+      let dx = INV_ZOOMS[zoomIndex] * (evt.offsetX - lastX);
+      let dy = INV_ZOOMS[zoomIndex] * (evt.offsetY - lastY);
       if (selectedItem) {
         // move selected item
         selectedItem.point1[0] += dx;
@@ -375,6 +386,18 @@ function init() {
   el('control-snap').onclick = evt => {
     snapToGrid = evt.target.checked;
   };
+  el('control-zoom-out').onclick = evt => {
+    if (zoomIndex > 0) {
+      --zoomIndex;
+    }
+    refreshCanvas();
+  }
+  el('control-zoom-in').onclick = evt => {
+    if (zoomIndex < ZOOMS.length - 1) {
+      ++zoomIndex;
+    }
+    refreshCanvas();
+  }
 
   // default control settings
   el('tool-scroll').checked = true;
